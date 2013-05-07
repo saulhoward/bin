@@ -1,0 +1,40 @@
+#! /bin/bash
+
+###
+# Start up a Qemu VM
+#
+#     vm-start [VM NAME] [IP ADDRESS]
+# 
+# Saul <saul@saulhoward.com>
+###
+
+echo "Starting VM $1"
+echo "with IP $2"
+
+MACHINE_DIR='/home/saul/machines/qemu'
+USERID=`whoami`
+
+echo "echo 1 > /proc/sys/net/ipv4/conf/wlan0/proxy_arp" | sudo sh
+
+IFACE=$(sudo tunctl -b -u $USERID)
+
+echo "echo 1 > /proc/sys/net/ipv4/conf/$IFACE/proxy_arp" | sudo sh
+sudo ip link set $IFACE up
+sudo route add -host $2 dev $IFACE
+
+# This line creates a random mac address. The downside is the dhcp
+# server will assign a different ip each time
+printf -v macaddr "52:54:%02x:%02x:%02x:%02x" $(( $RANDOM & 0xff)) $(( $RANDOM & 0xff )) $(( $RANDOM & 0xff)) $(( $RANDOM & 0xff ))
+# Instead, uncomment and edit this line to set an static mac address.
+# The benefit is that the dhcp server will assign the same ip.
+#macaddr='52:54:be:36:42:a9'
+ 
+qemu-system-x86_64 -netdev type=tap,id=vnet0,ifname="$IFACE" \
+    -device virtio-net-pci,netdev=vnet0,id=net0,mac="$macaddr" \
+    -m 512 -cpu host -smp cores=2 -enable-kvm \
+    -drive file=$MACHINE_DIR/$1.qcow2,if=virtio \
+    -vga none -display none -daemonize
+
+    #-vga std
+ 
+sudo tunctl -d $IFACE &> /dev/null

@@ -1,0 +1,19 @@
+#! /bin/bash
+
+###
+# Run VMs
+# 
+# Saul <saul@saulhoward.com>
+###
+
+case "$1" in
+    "short-name")
+        VM_NAME=long-name
+        VM_IP=192.168.1.1
+        ;;
+    *)
+        ;; 
+esac
+
+/home/saul/bin/vm-start $VM_START $VM_NAME $VM_IP
+

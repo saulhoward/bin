@@ -1,4 +1,4 @@
 bin
 ===
 
-Useful shell scripts
+My collection of shell scripts for automating linux programs.

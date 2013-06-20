@@ -16,7 +16,9 @@ USERID=`whoami`
 
 echo "echo 1 > /proc/sys/net/ipv4/conf/wlan0/proxy_arp" | sudo sh
 
-IFACE=$(sudo tunctl -b -u $USERID)
+# name our tap interface tap{MACHINE}
+IFACE=tap$1
+sudo ip tuntap add mode tap user $USERID $IFACE vnet_hdr
 
 echo "echo 1 > /proc/sys/net/ipv4/conf/$IFACE/proxy_arp" | sudo sh
 sudo ip link set $IFACE up
@@ -37,4 +39,5 @@ qemu-system-x86_64 -netdev type=tap,id=vnet0,ifname="$IFACE" \
 
     #-vga std
  
-sudo tunctl -d $IFACE &> /dev/null
+# remove the tap iface
+sudo ip tuntap del $IFACE mode tap

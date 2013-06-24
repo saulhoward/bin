@@ -15,6 +15,7 @@ MACHINE_DIR='/home/saul/machines/qemu'
 USERID=`whoami`
 
 echo "echo 1 > /proc/sys/net/ipv4/conf/wlan0/proxy_arp" | sudo sh
+echo "echo 1 > /proc/sys/net/ipv4/conf/eth0/proxy_arp" | sudo sh
 
 # name our tap interface tap{MACHINE}
 IFACE=tap$1

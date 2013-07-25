@@ -15,5 +15,6 @@ case "$1" in
         ;; 
 esac
 
-/home/saul/bin/vm-start $VM_START $VM_NAME $VM_IP
+VM_START="/home/saul/bin/vm-start"
+$VM_START -n $VM_NAME -i $VM_IP
 

@@ -3,13 +3,56 @@
 ###
 # Start up a Qemu VM
 #
-#     vm-start [VM NAME] [IP ADDRESS]
+#     vm-start -n [VM NAME] -i [IP ADDRESS]
 # 
 # Saul <saul@saulhoward.com>
 ###
 
-echo "Starting VM $1"
-echo "with IP $2"
+usage()
+{
+cat << EOF
+usage: $0 options
+
+Start a Qemu VM
+
+OPTIONS:
+   -h      Show this message
+   -n      VM name (required)
+   -i      IP address (required)
+   -v      Visual mode
+EOF
+}
+
+while getopts "hn:i:v" opt; do
+    case $opt in
+        h)
+            usage
+            exit 1
+            ;;
+        n)
+            VMNAME=$OPTARG
+            ;;
+        i)
+            IPADDRESS=$OPTARG
+            ;;
+        v)
+            VISUALMODE=1
+            ;;
+        ?)
+            usage
+            exit
+            ;;
+    esac
+done
+
+if [ -z "$VMNAME" -o -z "$IPADDRESS" ]
+then
+    echo "VM or IP not set"
+    exit
+fi
+
+echo "Starting VM $VMNAME"
+echo "with IP $IPADDRESS"
 
 MACHINE_DIR='/home/saul/machines/qemu'
 USERID=`whoami`
@@ -18,12 +61,12 @@ echo "echo 1 > /proc/sys/net/ipv4/conf/wlan0/proxy_arp" | sudo sh
 echo "echo 1 > /proc/sys/net/ipv4/conf/eth0/proxy_arp" | sudo sh
 
 # name our tap interface tap{MACHINE}
-IFACE=tap$1
+IFACE=tap$VMNAME
 sudo ip tuntap add mode tap user $USERID $IFACE vnet_hdr
 
 echo "echo 1 > /proc/sys/net/ipv4/conf/$IFACE/proxy_arp" | sudo sh
 sudo ip link set $IFACE up
-sudo route add -host $2 dev $IFACE
+sudo route add -host $IPADDRESS dev $IFACE
 
 # This line creates a random mac address. The downside is the dhcp
 # server will assign a different ip each time
@@ -31,14 +74,18 @@ printf -v macaddr "52:54:%02x:%02x:%02x:%02x" $(( $RANDOM & 0xff)) $(( $RANDOM &
 # Instead, uncomment and edit this line to set an static mac address.
 # The benefit is that the dhcp server will assign the same ip.
 #macaddr='52:54:be:36:42:a9'
+
+if [ "$VISUALMODE" = 1 ]
+then
+    VGA="-vga std"
+else
+    VGA="-vga none -display none -daemonize"
+fi
  
 qemu-system-x86_64 -netdev type=tap,id=vnet0,ifname="$IFACE" \
     -device virtio-net-pci,netdev=vnet0,id=net0,mac="$macaddr" \
     -m 512 -cpu host -smp cores=2 -enable-kvm \
-    -drive file=$MACHINE_DIR/$1.qcow2,if=virtio \
-    -vga none -display none -daemonize
-
-    #-vga std
+    -drive file=$MACHINE_DIR/$VMNAME.qcow2,if=virtio $VGA
  
 # remove the tap iface
 sudo ip tuntap del $IFACE mode tap

@@ -16,14 +16,15 @@ usage: $0 options
 Start a Qemu VM
 
 OPTIONS:
-   -h      Show this message
-   -n      VM name (required)
-   -i      IP address (required)
-   -v      Visual mode
+   -h        Show this message
+   -n name   VM name (required)
+   -i ip     IP address (required)
+   -m mem    Memory (eg, 1024)
+   -v        Visual mode
 EOF
 }
 
-while getopts "hn:i:v" opt; do
+while getopts "hn:i:m:v" opt; do
     case $opt in
         h)
             usage
@@ -34,6 +35,9 @@ while getopts "hn:i:v" opt; do
             ;;
         i)
             IPADDRESS=$OPTARG
+            ;;
+        m)
+            MEM=$OPTARG
             ;;
         v)
             VISUALMODE=1
@@ -75,6 +79,13 @@ printf -v macaddr "52:54:%02x:%02x:%02x:%02x" $(( $RANDOM & 0xff)) $(( $RANDOM &
 # The benefit is that the dhcp server will assign the same ip.
 #macaddr='52:54:be:36:42:a9'
 
+if [ -n "$MEM" ]
+then
+    MEMOPT="-m $MEM"
+else
+    MEMOPT="-m 512"
+fi
+ 
 if [ "$VISUALMODE" = 1 ]
 then
     VGA="-vga std"
@@ -84,7 +95,7 @@ fi
  
 qemu-system-x86_64 -netdev type=tap,id=vnet0,ifname="$IFACE" \
     -device virtio-net-pci,netdev=vnet0,id=net0,mac="$macaddr" \
-    -m 512 -cpu host -smp cores=2 -enable-kvm \
+    $MEMOPT -cpu host -smp cores=2 -enable-kvm \
     -drive file=$MACHINE_DIR/$VMNAME.qcow2,if=virtio $VGA
  
 # remove the tap iface
